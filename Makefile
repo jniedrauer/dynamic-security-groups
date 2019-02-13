@@ -15,14 +15,15 @@ GOLINT := $(GO) run github.com/golang/lint/golint
 GOJUNITREPORT := $(GO) run github.com/jstemmer/go-junit-report
 
 # Default target
-.PHONY: all
-all: clean lint tidy dist
+.PHONY: build
+build: $(BUILDDIR)/dns-firewall
 
 # Runs linters
 .PHONY: lint
 lint:
 	$(GOLINT) -set_exit_status $(PKGS)
 
+# Runs unit tests
 .PHONY: test
 test:
 	@mkdir -p $(REPORTDIR)
@@ -30,16 +31,16 @@ test:
 		| tee -i /dev/stderr \
 		| $(GOJUNITREPORT) -set-exit-code >$(REPORTDIR)/unit-test-report.xml
 
+# Runs mod tidy
 .PHONY: tidy
 tidy:
 	$(GO) mod tidy
 
+# Packages build for distribution
 .PHONY: dist
 dist: build
 
-.PHONY: build
-build: $(BUILDDIR)/dns-firewall
-
+# Cleans build directory tree
 .PHONY: clean
 clean:
 	$(GO) clean -cache $(PKGS)
