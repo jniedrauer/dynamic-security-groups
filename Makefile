@@ -1,6 +1,6 @@
 # Build config
 BUILDFLAGS := -v -ldflags "-s -w -extldflags '-static'"
-BUILDENV := GOOS=linux GOARCH=amd64
+BUILDENV := GOOS=linux GOARCH=amd64 CGO_ENABLED=0
 BUILDDIR := build
 CMDDIR := cmd
 TESTFLAGS := -v -race
