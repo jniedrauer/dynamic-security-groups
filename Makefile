@@ -26,10 +26,10 @@ lint:
 # Runs unit tests
 .PHONY: test
 test:
-	@mkdir -p $(REPORTDIR)
+	@mkdir -p $(REPORTDIR)/xUnit
 	$(TESTENV) $(GO) test $(TESTFLAGS) $(PKGS) \
 		| tee -i /dev/stderr \
-		| $(GOJUNITREPORT) -set-exit-code >$(REPORTDIR)/unit-test-report.xml
+		| $(GOJUNITREPORT) -set-exit-code >$(REPORTDIR)/xUnit/test-report.xml
 
 # Runs mod tidy
 .PHONY: tidy
