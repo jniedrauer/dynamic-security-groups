@@ -29,3 +29,36 @@ jobs:
 
       - store_test_results:
           path: /go/src/github.com/jniedrauer/dynamic-security-groups/build/test-reports
+
+  publish-github-release:
+    docker:
+      - image: cibuilds/github:0.10
+    steps:
+      - attach_workspace:
+          at: ./workspace
+      - run:
+          name: Publish
+          command: |
+            VERSION=$CIRCLE_TAG
+            ghr
+              -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME}
+              -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1}
+              -delete ${VERSION}
+              ./workspace/build/dist/*.tar.gz
+
+workflows:
+  version: 2
+  main:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
+      - publish-github-release:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
