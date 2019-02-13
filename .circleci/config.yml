@@ -45,7 +45,7 @@ jobs:
               -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} \
               -delete \
               ${VERSION} \
-              ./workspace/build/dist/*.tar.gz
+              ./workspace/build/dist
 
 workflows:
   version: 2

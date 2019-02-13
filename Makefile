@@ -33,7 +33,7 @@ lint:
 # Runs unit tests
 .PHONY: test
 test:
-	@mkdir -p $(REPORTDIR)/xUnit
+	mkdir -p $(REPORTDIR)/xUnit
 	$(TESTENV) $(GO) test $(TESTFLAGS) $(PKGS) \
 		| tee -i /dev/stderr \
 		| $(GOJUNITREPORT) -set-exit-code >$(REPORTDIR)/xUnit/test-report.xml
@@ -54,11 +54,13 @@ clean:
 	-find $(BUILDDIR) -type f -exec rm {} \;
 
 $(DISTDIR)/$(TAR_ARCHIVE): $(BUILDDIR)/dns-firewall
+	-mkdir -p $(DISTDIR)
+	-rm -rf $(BUILDDIR)/tmp
 	$(foreach bin, $^, \
-		mkdir -p $(DISTDIR)/$(BASENAME)/$(notdir $(bin)); \
-		cp $(bin) $(DISTDIR)/$(BASENAME)/$(notdir $(bin)); \
+		mkdir -p $(BUILDDIR)/tmp/$(BASENAME)/$(notdir $(bin)); \
+		cp $(bin) $(BUILDDIR)/tmp/$(BASENAME)/$(notdir $(bin)); \
 	)
-	$(TAR) -C $(DISTDIR) -czvf $(DISTDIR)/$(TAR_ARCHIVE) $(BASENAME)
+	$(TAR) -C $(BUILDDIR)/tmp -czvf $(DISTDIR)/$(TAR_ARCHIVE) $(BASENAME)
 
 $(BUILDDIR)/%: $(wildcard $(CMDDIR)/**/*) $(SOURCES)
 	 $(BUILDENV) $(GO) build $(BUILDFLAGS) -o $@ $<
