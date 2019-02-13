@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"net"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -30,18 +29,6 @@ func main() {
 func lambdaHandler(_ context.Context, evt Event) (string, error) {
 	rules := make([]rule.Rule, len(evt.Rules))
 	copy(rules, evt.Rules)
-
-	for i := range rules {
-		ips, err := net.LookupHost(rules[i].Name)
-		if err != nil {
-			log.Printf("Failed to resolve: %+v", err)
-			return awshelpers.LambdaOutput(err)
-		}
-
-		log.Printf("Resolved %s to %+v", rules[i].Name, ips)
-
-		rules[i].IPAddresses = ips
-	}
 
 	errs := make([]error, 0)
 	for _, sgid := range evt.SecurityGroups {

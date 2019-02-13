@@ -100,6 +100,8 @@ func Add(rules []Rule, sg *ec2.SecurityGroup, ec2Client ec2iface.EC2API) error {
 			return nil
 		}
 
+		log.Printf("Resolved %s to %+v", rule.Name, ips)
+
 		cidrs := make([]*ec2.IpRange, 0)
 		for _, ip := range ips {
 			if Exists(ip, rule, sg) {
