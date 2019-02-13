@@ -20,7 +20,7 @@ jobs:
           command: make test
       - run:
           name: Build
-          command: make
+          command: make dist
 
       - save_cache:
           key: mod-{{ checksum "go.sum" }}
