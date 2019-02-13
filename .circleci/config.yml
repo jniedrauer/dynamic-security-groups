@@ -30,12 +30,17 @@ jobs:
       - store_test_results:
           path: /go/src/github.com/jniedrauer/dynamic-security-groups/build/test-reports
 
+      - persist_to_workspace:
+          root: build
+            paths:
+              - dist
+
   publish-github-release:
     docker:
       - image: cibuilds/github:0.10
     steps:
       - attach_workspace:
-          at: ./workspace
+          at: build
       - run:
           name: Publish
           command: |
@@ -45,7 +50,7 @@ jobs:
               -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} \
               -delete \
               ${VERSION} \
-              ./workspace/build/dist
+              build/dist
 
 workflows:
   version: 2
