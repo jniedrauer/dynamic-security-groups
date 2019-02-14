@@ -27,6 +27,9 @@ type Event struct {
 	// for a complete list of services.
 	Services []string `json:"services"`
 
+	// Regions are the regions to whitelist.
+	Regions []string `json:"regions"`
+
 	// SecurityGroups are the security groups to apply them to.
 	SecurityGroups []string `json:"securityGroups"`
 }
@@ -42,7 +45,7 @@ func main() {
 }
 
 func lambdaHandler(_ context.Context, evt Event) (string, error) {
-	getter := awsips.NewIPRangesGetter(awsips.IPRangesFile)
+	getter := awsips.NewIPRangesGetter(awsips.IPRangesFile, evt.Regions)
 
 	services := make([]Service, 0)
 

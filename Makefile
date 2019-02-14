@@ -53,7 +53,7 @@ clean:
 	$(GO) clean -cache $(PKGS)
 	-find $(BUILDDIR) -type f -exec rm {} \;
 
-$(DISTDIR)/$(TAR_ARCHIVE): $(BUILDDIR)/dns-firewall
+$(DISTDIR)/$(TAR_ARCHIVE): $(BUILDDIR)/dns-firewall $(BUILDDIR)/aws-api-egress
 	-mkdir -p $(DISTDIR)
 	-rm -rf $(BUILDDIR)/tmp
 	$(foreach bin, $^, \
