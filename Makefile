@@ -23,7 +23,7 @@ TAR := tar
 
 # Default target
 .PHONY: build
-build: $(BUILDDIR)/dns-firewall
+build: $(BUILDDIR)/dns-firewall $(BUILDDIR)/aws-api-egress
 
 # Runs linters
 .PHONY: lint

@@ -1,6 +1,5 @@
 # Dynamic Security Groups
-Update security group rules dynamically using AWS Lambda.
-Create rules using DNS or AWSs published list of public IP addresses.
+Update security group rules dynamically using DNS or AWS service IPs.
 
 [![CircleCI](https://circleci.com/gh/jniedrauer/dynamic-security-groups/tree/master.svg?style=shield)](https://circleci.com/gh/jniedrauer/dynamic-security-groups/tree/master)
 [![Release](https://img.shields.io/github/release/jniedrauer/dynamic-security-groups/all.svg?style=shield)](https://github.com/jniedrauer/dynamic-security-groups/releases/latest)
