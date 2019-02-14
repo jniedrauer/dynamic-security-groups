@@ -2,21 +2,18 @@ package main
 
 import (
 	"context"
+	"log"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/jniedrauer/dynamic-security-groups/pkg/awshelpers"
+	"github.com/jniedrauer/dynamic-security-groups/pkg/awsips"
 	"github.com/jniedrauer/dynamic-security-groups/pkg/rule"
 )
 
-// IPRangesFile is a file published by Amazon with a list of their public
-// CIDRs. This file may change periodically.
-const IPRangesFile = "https://ip-ranges.amazonaws.com/ip-ranges.json"
-
 // Rule configuration constants for AWS APIs.
 const (
-	httpPort     = 80
 	httpsPort    = 443
 	ruleProtocol = rule.ProtocolTCP
 )
@@ -34,19 +31,10 @@ type Event struct {
 	SecurityGroups []string `json:"securityGroups"`
 }
 
-// IPRanges is the deserialized IPRangesFile.
-type IPRanges struct {
-	SyncToken  string   `json:"syncToken"`
-	CreateDate string   `json:"createDate"`
-	Prefixes   []Prefix `json:"prefixes"`
-	// IPv6 prefixes intentionally not deserialized.
-}
-
-// Prefix is a single AWS service CIDR.
-type Prefix struct {
-	IPPrefix string `json:"ip_prefix"`
-	Region   string `json:"region"`
-	Service  string `json:"service"`
+// Service is an AWS service.
+type Service struct {
+	Name  string
+	CIDRs []string
 }
 
 func main() {
@@ -54,5 +42,56 @@ func main() {
 }
 
 func lambdaHandler(_ context.Context, evt Event) (string, error) {
+	getter := awsips.NewIPRangesGetter(awsips.IPRangesFile)
+
+	services := make([]Service, 0)
+
+	for _, svc := range evt.Services {
+		cidrs, err := getter.GetService(svc)
+		if err != nil {
+			log.Printf("Failed to read CIDRs for service %s: %+v", svc, err)
+			return awshelpers.LambdaOutput(err)
+		}
+
+		services = append(services, Service{
+			Name:  svc,
+			CIDRs: cidrs,
+		})
+	}
+
+	rules := make([]rule.Rule, len(services))
+	for i := range services {
+		rules[i] = rule.Rule{
+			Name:     services[i].Name,
+			Port:     httpsPort,
+			Protocol: rule.ProtocolTCP,
+			Egress:   true,
+			CIDRs:    services[i].CIDRs,
+		}
+	}
+
+	errs := make([]error, 0)
+	for _, sgid := range evt.SecurityGroups {
+		sg, err := awshelpers.DescribeSecurityGroup(sgid, ec2Client)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		if err := rule.Add(rules, sg, ec2Client); err != nil {
+			log.Printf("Failed to add rules: %+v", err)
+			errs = append(errs, err)
+		}
+
+		if err := rule.Cleanup(rules, sg, ec2Client); err != nil {
+			log.Printf("Failed to clean up rules: %+v", err)
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return awshelpers.LambdaOutput(errs[0])
+	}
+
 	return awshelpers.LambdaOutput(nil)
 }
