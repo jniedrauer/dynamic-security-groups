@@ -37,17 +37,27 @@ type Rule struct {
 	// Egress specifies whether the rule is ingress (default) or egress.
 	Egress bool `json:"egress"`
 
-	// IPAddresses is populated with the resolved FQDN.
-	IPAddresses []string
+	// CIDRs is populated with the resolved FQDN.
+	CIDRs []string
 }
 
 // Resolve resolves the rule's name to IP addresses.
 func (r *Rule) Resolve() ([]string, error) {
-	if len(r.IPAddresses) > 0 {
-		return r.IPAddresses, nil
+	if len(r.CIDRs) > 0 {
+		return r.CIDRs, nil
 	}
 
-	return net.LookupHost(r.Name)
+	ips, err := net.LookupHost(r.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	cidrs := make([]string, len(ips))
+	for i := range ips {
+		cidrs[i] = ips[i] + CIDRSuffix
+	}
+
+	return cidrs, nil
 }
 
 // Exists returns a boolean for whether or not a given IP address in a rule
@@ -73,7 +83,7 @@ func Exists(ip string, rule Rule, sg *ec2.SecurityGroup) bool {
 		}
 
 		for _, oldCIDR := range oldRule.IpRanges {
-			if oldCIDR.CidrIp != nil && strings.TrimSuffix(*oldCIDR.CidrIp, CIDRSuffix) == ip {
+			if oldCIDR.CidrIp != nil && *oldCIDR.CidrIp == ip {
 				return true
 			}
 		}
@@ -95,26 +105,26 @@ func Add(rules []Rule, sg *ec2.SecurityGroup, ec2Client ec2iface.EC2API) error {
 	}
 
 	for _, rule := range rules {
-		ips, err := rule.Resolve()
+		cidrs, err := rule.Resolve()
 		if err != nil {
 			return nil
 		}
 
-		log.Printf("Resolved %s to %+v", rule.Name, ips)
+		log.Printf("Resolved %s to %+v", rule.Name, cidrs)
 
-		cidrs := make([]*ec2.IpRange, 0)
-		for _, ip := range ips {
-			if Exists(ip, rule, sg) {
+		ipRanges := make([]*ec2.IpRange, 0)
+		for _, cidr := range cidrs {
+			if Exists(cidr, rule, sg) {
 				continue
 			}
 
-			cidrs = append(cidrs, &ec2.IpRange{
-				CidrIp:      aws.String(ip + CIDRSuffix),
+			ipRanges = append(ipRanges, &ec2.IpRange{
+				CidrIp:      aws.String(cidr),
 				Description: aws.String(DescriptionPrefix + rule.Name),
 			})
 		}
 
-		if len(cidrs) <= 0 {
+		if len(ipRanges) <= 0 {
 			continue
 		}
 
@@ -122,14 +132,14 @@ func Add(rules []Rule, sg *ec2.SecurityGroup, ec2Client ec2iface.EC2API) error {
 			egress.IpPermissions = append(egress.IpPermissions, &ec2.IpPermission{
 				FromPort:   aws.Int64(int64(rule.Port)),
 				IpProtocol: aws.String(rule.Protocol),
-				IpRanges:   cidrs,
+				IpRanges:   ipRanges,
 				ToPort:     aws.Int64(int64(rule.Port)),
 			})
 		} else {
 			ingress.IpPermissions = append(ingress.IpPermissions, &ec2.IpPermission{
 				FromPort:   aws.Int64(int64(rule.Port)),
 				IpProtocol: aws.String(rule.Protocol),
-				IpRanges:   cidrs,
+				IpRanges:   ipRanges,
 				ToPort:     aws.Int64(int64(rule.Port)),
 			})
 		}
@@ -181,8 +191,8 @@ EGRESS_OUTER:
 			}
 
 			for _, newRule := range rules {
-				for _, ip := range newRule.IPAddresses {
-					if strings.TrimSuffix(*oldCIDR.CidrIp, CIDRSuffix) == ip {
+				for _, cidr := range newRule.CIDRs {
+					if oldCIDR.CidrIp != nil && *oldCIDR.CidrIp == cidr {
 						continue EGRESS_OUTER
 					}
 				}
@@ -200,8 +210,8 @@ INGRESS_OUTER:
 			}
 
 			for _, newRule := range rules {
-				for _, ip := range newRule.IPAddresses {
-					if strings.TrimSuffix(*oldCIDR.CidrIp, CIDRSuffix) == ip {
+				for _, cidr := range newRule.CIDRs {
+					if oldCIDR.CidrIp != nil && *oldCIDR.CidrIp == cidr {
 						continue INGRESS_OUTER
 					}
 				}

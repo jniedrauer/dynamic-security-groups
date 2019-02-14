@@ -13,7 +13,7 @@ import (
 func TestExists(t *testing.T) {
 	tests := []struct {
 		name string
-		ip   string
+		cidr string
 		rule Rule
 		sg   *ec2.SecurityGroup
 
@@ -21,7 +21,7 @@ func TestExists(t *testing.T) {
 	}{
 		{
 			name: "SingleEgressRuleExists",
-			ip:   "123.123.123.123",
+			cidr: "123.123.123.123/32",
 			rule: Rule{
 				Port:     8080,
 				Protocol: ProtocolTCP,
@@ -46,7 +46,7 @@ func TestExists(t *testing.T) {
 		},
 		{
 			name: "SingleIngressRuleExists",
-			ip:   "123.123.123.123",
+			cidr: "123.123.123.123/32",
 			rule: Rule{
 				Port:     8080,
 				Protocol: ProtocolTCP,
@@ -71,7 +71,7 @@ func TestExists(t *testing.T) {
 		},
 		{
 			name: "PortMismatch",
-			ip:   "123.123.123.123",
+			cidr: "123.123.123.123/32",
 			rule: Rule{
 				Port:     8080,
 				Protocol: ProtocolTCP,
@@ -96,7 +96,7 @@ func TestExists(t *testing.T) {
 		},
 		{
 			name: "NilPort",
-			ip:   "123.123.123.123",
+			cidr: "123.123.123.123/32",
 			rule: Rule{
 				Port:     8080,
 				Protocol: ProtocolTCP,
@@ -112,7 +112,7 @@ func TestExists(t *testing.T) {
 		},
 		{
 			name: "NilProtocol",
-			ip:   "123.123.123.123",
+			cidr: "123.123.123.123/32",
 			rule: Rule{
 				Port:     8080,
 				Protocol: ProtocolTCP,
@@ -134,7 +134,7 @@ func TestExists(t *testing.T) {
 		},
 		{
 			name: "NilCIDR",
-			ip:   "123.123.123.123",
+			cidr: "123.123.123.123/32",
 			rule: Rule{
 				Port:     8080,
 				Protocol: ProtocolTCP,
@@ -157,7 +157,7 @@ func TestExists(t *testing.T) {
 		},
 		{
 			name: "DoesNotExist",
-			ip:   "123.123.123.123",
+			cidr: "123.123.123.123/32",
 			rule: Rule{
 				Port:     8080,
 				Protocol: ProtocolTCP,
@@ -204,7 +204,7 @@ func TestExists(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result := Exists(test.ip, test.rule, test.sg)
+			result := Exists(test.cidr, test.rule, test.sg)
 			assert.Equal(t, test.expect, result)
 		})
 	}
@@ -225,11 +225,11 @@ func TestAdd(t *testing.T) {
 			name: "AddSingleEgressRule",
 			rules: []Rule{
 				{
-					Name:        "api.foo.com",
-					Port:        443,
-					Protocol:    ProtocolTCP,
-					Egress:      true,
-					IPAddresses: []string{"123.123.123.123"},
+					Name:     "api.foo.com",
+					Port:     443,
+					Protocol: ProtocolTCP,
+					Egress:   true,
+					CIDRs:    []string{"123.123.123.123/32"},
 				},
 			},
 			sg: &ec2.SecurityGroup{
@@ -258,10 +258,10 @@ func TestAdd(t *testing.T) {
 			name: "AddSingleIngressRule",
 			rules: []Rule{
 				{
-					Name:        "api.foo.com",
-					Port:        443,
-					Protocol:    ProtocolTCP,
-					IPAddresses: []string{"123.123.123.123"},
+					Name:     "api.foo.com",
+					Port:     443,
+					Protocol: ProtocolTCP,
+					CIDRs:    []string{"123.123.123.123/32"},
 				},
 			},
 			sg: &ec2.SecurityGroup{
@@ -290,18 +290,18 @@ func TestAdd(t *testing.T) {
 			name: "AddMultipleEgressRules",
 			rules: []Rule{
 				{
-					Name:        "api.foo.com",
-					Port:        443,
-					Protocol:    ProtocolTCP,
-					Egress:      true,
-					IPAddresses: []string{"123.123.123.123"},
+					Name:     "api.foo.com",
+					Port:     443,
+					Protocol: ProtocolTCP,
+					Egress:   true,
+					CIDRs:    []string{"123.123.123.123/32"},
 				},
 				{
-					Name:        "api.dev.foo.com",
-					Port:        443,
-					Protocol:    ProtocolTCP,
-					Egress:      true,
-					IPAddresses: []string{"123.123.123.124"},
+					Name:     "api.dev.foo.com",
+					Port:     443,
+					Protocol: ProtocolTCP,
+					Egress:   true,
+					CIDRs:    []string{"123.123.123.124/32"},
 				},
 			},
 			sg: &ec2.SecurityGroup{
@@ -341,11 +341,11 @@ func TestAdd(t *testing.T) {
 			name: "AddExistingRule",
 			rules: []Rule{
 				{
-					Name:        "api.foo.com",
-					Port:        443,
-					Protocol:    ProtocolTCP,
-					Egress:      true,
-					IPAddresses: []string{"123.123.123.123"},
+					Name:     "api.foo.com",
+					Port:     443,
+					Protocol: ProtocolTCP,
+					Egress:   true,
+					CIDRs:    []string{"123.123.123.123/32"},
 				},
 			},
 			sg: &ec2.SecurityGroup{
@@ -370,11 +370,11 @@ func TestAdd(t *testing.T) {
 			name: "AddRuleError",
 			rules: []Rule{
 				{
-					Name:        "api.foo.com",
-					Port:        443,
-					Protocol:    ProtocolTCP,
-					Egress:      true,
-					IPAddresses: []string{"123.123.123.123"},
+					Name:     "api.foo.com",
+					Port:     443,
+					Protocol: ProtocolTCP,
+					Egress:   true,
+					CIDRs:    []string{"123.123.123.123/32"},
 				},
 			},
 			sg: &ec2.SecurityGroup{
@@ -511,16 +511,16 @@ func TestCleanup(t *testing.T) {
 			name: "NoRulesToRevoke",
 			rules: []Rule{
 				{
-					Port:        443,
-					Protocol:    ProtocolTCP,
-					Egress:      false,
-					IPAddresses: []string{"123.123.123.123"},
+					Port:     443,
+					Protocol: ProtocolTCP,
+					Egress:   false,
+					CIDRs:    []string{"123.123.123.123/32"},
 				},
 				{
-					Port:        443,
-					Protocol:    ProtocolTCP,
-					Egress:      true,
-					IPAddresses: []string{"123.123.123.123"},
+					Port:     443,
+					Protocol: ProtocolTCP,
+					Egress:   true,
+					CIDRs:    []string{"123.123.123.123/32"},
 				},
 			},
 			sg: &ec2.SecurityGroup{
