@@ -62,5 +62,5 @@ $(DISTDIR)/$(TAR_ARCHIVE): $(BUILDDIR)/dns-firewall $(BUILDDIR)/aws-api-egress
 	)
 	$(TAR) -C $(BUILDDIR)/tmp -czvf $(DISTDIR)/$(TAR_ARCHIVE) $(BASENAME)
 
-$(BUILDDIR)/%: $(wildcard $(CMDDIR)/**/*) $(SOURCES)
+$(BUILDDIR)/%: $(CMDDIR)/%/*.go $(SOURCES)
 	 $(BUILDENV) $(GO) build $(BUILDFLAGS) -o $@ $<

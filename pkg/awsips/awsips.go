@@ -3,6 +3,7 @@ package awsips
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -63,6 +64,8 @@ func (g *IPRangesGetter) Get() (*IPRanges, error) {
 	var err error
 
 	g.getOnce.Do(func() {
+		log.Printf("GET %s", g.url)
+
 		var req *http.Request
 		req, err = http.NewRequest(http.MethodGet, g.url, nil)
 		if err != nil {
@@ -82,7 +85,7 @@ func (g *IPRangesGetter) Get() (*IPRanges, error) {
 		}
 
 		result := &IPRanges{}
-		if err := json.NewDecoder(res.Body).Decode(result); err != nil {
+		if err = json.NewDecoder(res.Body).Decode(result); err != nil {
 			return
 		}
 
